@@ -7,7 +7,6 @@ pipeline {
     stages {
         stage('1. Clonar codigo') {
             steps {
-                checkout scm
                 sh 'git log --oneline -3'
             }
         }

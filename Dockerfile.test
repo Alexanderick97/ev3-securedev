@@ -1,0 +1,5 @@
+FROM python:3.13-slim
+WORKDIR /tests
+RUN pip install --no-cache-dir requests==2.32.3 pytest==8.3.4
+COPY test_seguridad.py .
+CMD ["pytest", "-v", "test_seguridad.py"]

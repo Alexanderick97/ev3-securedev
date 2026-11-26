@@ -15,7 +15,7 @@ pipeline {
                 sh 'docker build -t ${APP}:${BUILD_NUMBER} -t ${APP}:latest .'
             }
         }
-        stage('3. Pruebas') {
+        stage('3. Prueba de humo') {
             steps {
                 sh '''
                     docker rm -f ev3-test || true
@@ -26,7 +26,18 @@ pipeline {
                 '''
             }
         }
-        stage('4. Desplegar') {
+        stage('4. Pruebas de seguridad') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        docker build -t ev3-tests -f Dockerfile.test .
+                        docker run --rm --network ${NET} -e APP_URL=http://ev3-test:5000 ev3-tests
+                    '''
+                }
+            }
+        }
+        stage('5. Desplegar') {
+            when { expression { currentBuild.currentResult == 'SUCCESS' } }
             steps {
                 sh '''
                     docker rm -f ev3-app || true
@@ -38,7 +49,8 @@ pipeline {
     }
     post {
         always { sh 'docker rm -f ev3-test || true' }
-        success { echo 'Pipeline completado: la app quedo desplegada en el puerto 5000.' }
+        success { echo 'Pipeline completado: pruebas de seguridad superadas y app desplegada.' }
+        unstable { echo 'Se detectaron vulnerabilidades: el despliegue fue bloqueado por la puerta de seguridad.' }
         failure { echo 'El pipeline fallo: revisar la etapa marcada en rojo.' }
     }
 }
